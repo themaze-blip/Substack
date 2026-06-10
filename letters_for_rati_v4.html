@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rati's Substack</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --orange: #FF6719;
+    --ink: #1A1A1A;
+    --muted: #6B6B6B;
+    --border: #E8E8E8;
+    --bg: #FAFAF8;
+    --white: #FFFFFF;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--white); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; cursor: pointer; text-decoration: none; }
+  .nav-logo img { height: 32px; width: auto; object-fit: contain; }
+  .nav-logo span { font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 17px; color: var(--ink); }
+  /* fallback dot if logo.png missing */
+  .nav-logo .dot-fallback { width: 20px; height: 20px; background: var(--orange); border-radius: 5px; display: none; flex-shrink: 0; }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #0B5234 0%, #1A7A50 55%, #0D4A2C 100%);
+    color: white; padding: 56px 24px 48px; text-align: center; position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  .hero-tag { display: inline-block; background: rgba(255,255,255,.15); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 16px; position: relative; }
+  .hero h1 { font-family: 'Source Serif 4', serif; font-size: clamp(26px, 5vw, 46px); font-weight: 700; line-height: 1.2; margin-bottom: 12px; position: relative; }
+  .hero p { font-size: 15px; opacity: .82; max-width: 440px; margin: 0 auto; line-height: 1.65; position: relative; }
+
+  /* ── LAYOUT ── */
+  .layout { max-width: 1140px; margin: 0 auto; display: grid; grid-template-columns: 1fr 290px; gap: 40px; padding: 40px 24px 80px; }
+  @media (max-width: 740px) { .layout { grid-template-columns: 1fr; } .sidebar { order: -1; } }
+
+  /* ── FEED ── */
+  .feed-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .feed-label span { flex: 1; height: 1px; background: var(--border); }
+   
+  /* ── POST CARD ── */
+  .post { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 16px; transition: box-shadow .15s, transform .15s; }
+  .post:hover { box-shadow: 0 4px 20px rgba(0,0,0,.08); transform: translateY(-1px); }
+  .post-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .author { display: flex; align-items: center; gap: 10px; }
+  .av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+  .author-name { font-size: 14px; font-weight: 600; }
+  .post-time { font-size: 12px; color: var(--muted); }
+
+  /* Subscribe button — functional toggle */
+  .sub-btn { color: var(--orange); font-size: 13px; font-weight: 600; background: none; border: 1.5px solid var(--orange); padding: 4px 12px; border-radius: 14px; cursor: pointer; transition: background .15s, color .15s; white-space: nowrap; }
+  .sub-btn:hover { background: var(--orange); color: white; }
+  .sub-btn.subbed { background: var(--orange); color: white; }
+
+  /* Card image — cropped preview */
+  .post-img { width: 100%; height: 200px; border-radius: 8px; margin-bottom: 14px; object-fit: cover; display: block; background: #f0f0ee; }
+
+  .post-title { font-family: 'Source Serif 4', serif; font-size: 20px; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+  .post-snippet { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+  .read-more-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--orange); font-size: 13px; font-weight: 600; background: none; border: none; cursor: pointer; padding: 0; transition: gap .15s; }
+  .read-more-btn:hover { gap: 10px; }
+  .read-more-btn svg { width: 14px; height: 14px; }
+
+  .post-footer { display: flex; align-items: center; gap: 20px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .react { display: flex; align-items: center; gap: 5px; background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 0; transition: color .15s; }
+  .react:hover, .react.on { color: var(--orange); }
+  .react svg { width: 16px; height: 16px; }
+
+  /* ── SIDEBAR ── */
+  .side-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 22px; margin-bottom: 18px; text-align: center; }
+  .side-card h3 { font-family: 'Source Serif 4', serif; font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .side-card .tagline { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 0; }
+  .writers-row { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin: 14px 0 10px; }
+  .mini-av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; cursor: default; }
+  .writers-label { font-size: 12px; color: var(--muted); }
+
+  /* ── ARTICLE PAGE ── */
+  .article-wrap { max-width: 680px; margin: 0 auto; padding: 48px 24px 100px; }
+  .article-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .article-av { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: white; flex-shrink: 0; }
+  .article-author { font-size: 15px; font-weight: 600; }
+  .article-date { font-size: 13px; color: var(--muted); }
+  /* Full image on article page */
+  .article-hero-img { width: 100%; border-radius: 12px; margin-bottom: 32px; display: block; object-fit: cover; max-height: 420px; background: #f0f0ee; }
+  .article-title { font-family: 'Source Serif 4', serif; font-size: clamp(26px, 4vw, 38px); font-weight: 700; line-height: 1.2; margin-bottom: 24px; }
+  .article-divider { border: none; border-top: 1px solid var(--border); margin-bottom: 32px; }
+  .article-body { font-family: 'Source Serif 4', serif; font-size: 18px; line-height: 1.9; color: var(--ink); }
+  .article-body p { margin-bottom: 22px; }
+  .article-body p:last-child { margin-bottom: 0; }
+  .article-body .bible-verse { border-left: 3px solid var(--orange); padding-left: 16px; color: var(--muted); font-style: italic; margin: 28px 0; }
+  /* video embed */
+.article-video { 
+  width: 100%;
+  max-width: 420px;   /* keeps it like a phone screen */
+  aspect-ratio: 9 / 16;
+  margin: 28px auto;
+  display: block;
+  border-radius: 16px;
+  border: none;
+}  .video-placeholder { width: 100%; aspect-ratio: 16/9; border-radius: 10px; margin: 28px 0; background: #f0f0ee; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 14px; border: 1.5px dashed var(--border); }
+  .video-placeholder svg { width: 36px; height: 36px; opacity: .4; }
+  .article-footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .article-like { display: flex; align-items: center; gap: 6px; background: none; border: 1.5px solid var(--border); padding: 9px 18px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); transition: border-color .15s, color .15s; }
+  .article-like:hover, .article-like.on { border-color: var(--orange); color: var(--orange); }
+  .article-like svg { width: 16px; height: 16px; }
+  .article-back { color: var(--orange); font-size: 13px; font-weight: 600; background: none; border: none; cursor: pointer; }
+
+  /* toast */
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 10px 22px; border-radius: 8px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ════════════ PAGE 1 — FEED ════════════ -->
+<div id="feed-page" class="page active">
+
+  <nav>
+    <a class="nav-logo" href="#">
+      <img src="logo.png" alt="Rati's Substack" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="dot-fallback"></div>
+      <span>Rati's Substack</span>
+    </a>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-tag">✨ just for you</div>
+    <h1>Your people showed up, Rati</h1>
+    <p>Every letter here was written by someone who loves you. Read one when you need it most.</p>
+  </div>
+
+  <div class="layout">
+    <main>
+      <div class="feed-label">For you <span></span></div>
+
+      <!-- ── 1. PABI ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#FF6719">P</div>
+            <div>
+              <div class="author-name">Pabi 🎀</div>
+              <div class="post-time">7:03 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="1.jpeg" alt="Pabi's letter">
+        <div class="post-title">Still Growing — Just Like My Succulent</div>
+        <div class="post-snippet">You know I was looking at the succulent you gave me the other day, and I started laughing — because by all logic that plant should be dead. But somehow it's not…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Pabi 🎀" data-initials="P" data-color="#FF6719" data-img="1.jpeg"
+          data-title="Still Growing — Just Like My Succulent"
+          data-time="7:03 AM" data-hasvideo="false"
+          data-body="My sweet Rati❤️‍🩹🤍 My Village Day 1❤️‍🩹||You know I was looking at the succulent you gave me the other day. And I started laughing because I am the WORST plant owner ever😭. I forget to water it, and because I can't really open my blinds, it doesn't really get much sunlight. By all logic that plant should be dead😭.||But somehow it's not....||Somehow it's still growing. Every time I look at it, I see new little leaves🥹. It still brings so much life to my room. It just keeps THRIVING.||And honestly, it reminds me of YOU🫂❤️‍🩹.||No matter how chaotic life gets, no matter how much is being asked of you, you always seem to keep moving forward. Whether it's academics, family, friendships, or everything else life throws your way, You Find A Way To Thrive❤️‍🩹.||I know it probably doesn't feel that way right now, but from where I'm standing, I see my good friend who keeps showing up even when things are hard. I see someone who feels deeply and has so much love for the people in her life❤️‍🩹. I see someone who's survived every difficult season she's faced so far🩷.||And just like my little succulent, you keep growing🤍.||But that doesn't mean you have to be strong all the time. And I just wanted to remind you that you're allowed to not thrive🫂. You're allowed to just survive sometimes❤️. You are loved regardless.||Last year, on a random day whilst we were crashing out (as always), we promised to be each other's Village Inside A Village❤️. And those words still stand!!🩷||You will always be my favourite part of Village🫂.||I'm thinking about you🥺 and I'm rooting for You🎀. Always Think of Romans 8:18!!!🫀||I'm sending you the biggest hug🤍.||From your caffeine-addicted neighbour, Pabi🎀">
+          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span>0</span>
+          </button>
+          <button class="react">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── 2. AMO ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#1A6B4A">A</div>
+            <div>
+              <div class="author-name">Amo</div>
+              <div class="post-time">7:41 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="2.jpeg" alt="Amo's letter">
+        <div class="post-title">You Are Not the Exception to Your Own Way of Approaching Life</div>
+        <div class="post-snippet">You've always been someone who sees the potential in others before they see it in themselves. And I know, because you've done it for me so many times…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Amo" data-initials="A" data-color="#1A6B4A" data-img="2.jpeg"
+          data-title="You Are Not the Exception to Your Own Way of Approaching Life"
+          data-time="7:41 AM" data-hasvideo="false"
+data-body="Oh my gosh girl,||I don't even know where to start. But you've always been someone that sees the potential in others before they see it in themselves. And I know because you have done it for many soo many times. You've spoken my name in rooms I wasn't in, pushed me to opportunities I never thought I could take, and just reminded me that I can literally do anything I want.||And I think you need to be told that you aren't the exception to your own way of approaching life!!||I know you've mentioned that school has been hectic lately, and I know you've been carrying more than people probably realise. But I hope you remember that you deserve the same grace, patience, and kindness that you so freely give to everyone else.You don't have to have it all figured out before you're worthy of feeling proud of yourself!||Anyway, remember the pothole analogy.. well, it's back lolol. If life currently feels like one giant pothole disguised as a sinkhole, please remember that you've survived every other one so far. In the moment, all you can see is the hole right in front of you, and it feels impossible to imagine what comes next. But somehow, you always keep moving forward, and one day you're going to look back and realise this wasn't the end of the road after all!!||And when the road gets rough and things get a bit shaky, just remember there is always the man upstairs.||“Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to Him, and He will make your paths straight” - Proverbs 3:5-6.||God's not waiting for you at the finish line when you've figured it all out. He's with you on every step of the way.||And just in case you've forgotten lately: there has never been a single moment in our friendship where I doubted you as much as you've doubted yourself.||And deep in my heart I wish you could see yourself through my eyes, even for five minutes. You'd finally understand why so many people love you, believe in you, and want to see you win.||You've got this, girl. One pothole at a time.🤍">          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+      <!-- ── 3. TINO ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#5B4FCF">T</div>
+            <div>
+              <div class="author-name">Tino</div>
+              <div class="post-time">8:15 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="3.jpeg" alt="Tino's letter">
+        <div class="post-title">A Special Kind of Person — That's Exactly What You Are</div>
+        <div class="post-snippet">I don't know if you hear this enough, but you mean so much to the people around you. You're the kind of person who shows up for others without hesitation…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Tino" data-initials="T" data-color="#5B4FCF" data-img="3.jpeg"
+          data-title="A Special Kind of Person — That's Exactly What You Are"
+          data-time="8:15 AM" data-hasvideo="true"
+          data-body="Dear Rati,||I don't know if you hear this enough, but you mean so much to the people around you. You're the kind of person who shows up for others without hesitation, and I hope you know that there are people who would do the same for you.||You've probably been carrying more than most people realise lately, but please don't forget how loved and appreciated you are. Even on the days when you're tired, overwhelmed, or doubting yourself, you're still the incredible person we've always known.||Thank you for the laughs, the memories, and for simply being you. The world is a little brighter because you're in it.||Who else would up and drive me to a practical when i'm late and still wait for me. Who else would be down to do food runs with me when she's not even hungry . Who else would listen to me vent when i call right as she was about to take a nap. Who else would support me and keep me motivated when i lose sight of the goal. A special kind of person, and that's exactly what you are.||You've got a whole team in your corner, always.">          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+      <!-- ── 4. PANJI ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#D4478A">Pa</div>
+            <div>
+              <div class="author-name">Panji</div>
+              <div class="post-time">8:52 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="4.jpeg" alt="Panji's letter">
+        <div class="post-title">A Future Entertainer Who Studied Computer Science — That's a Flex</div>
+        <div class="post-snippet">I know you're going through a lot and feel like everything is coming at you all at once and you can't catch a break. I will share what I've learned from my short life experience…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Panji" data-initials="Pa" data-color="#D4478A" data-img="4.jpeg"
+          data-title="A Future Entertainer Who Studied Computer Science — That's a Flex"
+          data-time="8:52 AM" data-hasvideo="false"
+          data-body="Dear Rati,||I know you're going through a lot and feel like everything is coming at you all at once and you can't catch a break 🤯. Trust me, I understand the feeling of asking 'why me?', but I will share what I have learned from my short life experience, so take everything with a grain of salt 🙈🧂. God will walk with you in this season; even if His presence is not felt, He is still there (read Philippians 4:6–7).||Moving swiftly along, I thought I would write a few things that have inspired me to do better because of you🤭. I really admire your passion for the things you enjoy. Like, wow, I will never forget when I saw your advert on TV 💃🏽💃🏽💃🏽 and was telling my family, 'Look, that's my friend, wow, you're so amazing.' I love your drive to get what you want. And your school social balance is something that needs to be studied 📚. All I mean to say is that you influence those around you, even if they don't say it. Your presence is something I value because I know you make me feel heard. Now, I want you to remember I am here if you need to vent or cry, or just sit in silence 🫂.||Writing a supp doesn't have anything to do with your intelligence; it just means you have been given a second chance to show what you've learned 🏋️‍♀️.||Remember, you're a future entertainer who studied computer science in uni🤯; that's a flex, not many people can say that. So don't give up; you've got this. I believe in you. You are smart and intelligent; hence you're studying computer science. Also, remember no one will ask you how long you were in uni for. Look at me; I am literally a testament to that. Just try your hardest because that's all anyone can ask of you. When you do, at least you know you've given it your all. So, here's my two cents💷🥶.||Love,||Panji||☀️🥳🥰💪💃🏽🤭🙈🥶">
+          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+      <!-- ── 5. LINDELWA ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#0077B6">L</div>
+            <div>
+              <div class="author-name">Lindelwa</div>
+              <div class="post-time">9:30 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="5.jpeg" alt="Lindelwa's letter">
+        <div class="post-title">You Are Skittles. You Are Shanikwa. You Are More Than You Know.</div>
+        <div class="post-snippet">When I was asked to think of a memory that reminds me of you, I realised I had a problem. I have known you your entire life — twenty years of memories is a lot to choose from…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Lindelwa" data-initials="L" data-color="#0077B6" data-img="5.jpeg"
+          data-title="You Are Skittles. You Are Shanikwa. You Are More Than You Know."
+          data-time="9:30 AM" data-hasvideo="true"
+          data-body="Dear Rati,||When I was asked to think of a memory that reminds me of you, I realised I had a problem. I have known you your entire life. Twenty years of memories is a lot to choose from. There are too many laughs, too many videos, too many random moments for me to pick just one.||But every time I think about you, I keep coming back to one thing, your love for playing dress-up. You have always done it. It doesn’t matter whose wardrobe it is. Yours, mine, Uyanda’s or Uyanda’s mom, a random cupboard you happened to walk past. If there are clothes involved, somehow you will find yourself creating outfits.||One of my favourite memories is the day you decided to become “Shanikwa.” You were wearing mam’ncanes shoes, which was already a terrible idea considering she wears a size three and we definitely do not. She was shouting at you, trying to get you to take them off and you were completely unbothered. You posed as if you were on a runway, fully committed to the character, announcing yourself as Shanikwa and refusing to let anyone tell you otherwise.||Or when you had valentines ball and you were strutting around in my dress and your dad came in and you were so embarrassed. Every time I watch that video or think of moments like that, I laugh. But more than that, every time I think about them, I remember how happy you were.||You have always been happiest when you are creating something. Whether it’s putting together outfits, dressing up for absolutely no reason, making edits, dancing, creating different versions of yourself, or turning an ordinary afternoon into your own fashion show, that has always been part of who you are.||And that’s why I want to remind you of something. You are so much more than assignments, exams, deadlines, marks, and stress. Right now, school might feel heavy. It might feel like all you do is study, worry, submit, repeat. But that isn’t all you are.||You are Skittles.||You are Shanikwa.||You are the fashionista/dancer who can spend hours putting together outfits and somehow end up creating ten completely different looks when she only needed one. You are the girl who can make herself laugh. You are creative, funny, dramatic in the best way possible and stronger than you give yourself credit for.||There is another memory that I will never stop talking about and that is your matric dance.||Out of all the people you could have asked, you asked me to be your date and I don’t think I have ever properly told you what an honour that was for me. It meant more than you probably realised. That whole day was special, but there is one moment I will never forget.||We were taking pictures, holding hands, looking at each other and suddenly I started crying. Not because anything was wrong. Not because I was sad. I was crying because I was looking at the little girl I had grown up with and realising that she wasn’t a little girl anymore.||Standing in front of me was this beautiful, intelligent, confident young woman who carried herself with so much grace. You looked absolutely stunning that day. I remember staring at you and thinking, “How did we get here so fast?”||You actually had to stop me from crying and ruining my makeup. But in that moment, I felt so proud of you. Proud of the person you had become. Proud of the way you carried yourself. Proud of the woman you were growing into.||Even now, when I look back at those pictures and videos, I am taken right back to that moment. I remember exactly how I felt looking at you. I remember thinking that no matter what life threw at you, you would find a way through it.||Not because life would be easy. But because you are strong. Because you are resilient. Because you have always found a way to keep going.||That day didn’t just remind me of how much I love you. It reminded me of how proud I am of you.||I’ve watched you grow up. I’ve seen you face difficult things before, and I’ve seen you get through them. That’s why I know you’ll get through this too.||When things become overwhelming, I hope you remember the parts of yourself that existed long before exams and deadlines. Put together an outfit. Play dress-up. Make an edit. Do something that reminds you of who you are outside of school.||One thing I know about us is that somehow, no matter what happens, we always figure it out.||We’ve had amazing days, difficult days, chaotic days and nights that definitely sounded like good ideas at the time. We’ve laughed until we cried, complained our way through situations and somehow always found a way forward.||I think that’s why I’m not worried about you now. I know things feel heavy. I know school can make you question yourself. But if there is one thing I know about you, it is that you always find your way back to yourself.||You are not doing this alone. You have friends who love you. You have family who loves you. You have me. And when things feel impossible, remember what we’ve always said:||We’ll figure it out. Because we always do.||I hope you know how loved you are. I hope you know how proud I am of you. And I hope you remember that when these exams are over, we’ll have time together again and all of this pressure will not feel as big as it does right now.||Oh also, one thing I hope you never forget is that there are so many people who love you. The fact that your friends wanted to do something like this for you says so much about the kind of person you are. You have spent years making people laugh, supporting them and being yourself so unapologetically that people genuinely care when you’re having a hard time. Not everyone gets to experience that kind of love. Even when things feel overwhelming, I hope you remember that you have people in your corner who are cheering for you, praying for you and believing in you, even on the days when you struggle to believe in yourself.||Keep going. Keep praying. Keep believing in yourself. The girl in the Shanikwa video is still there. And she is going to be just fine.||Love always,||Rascals🥹❤️">          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+      <!-- ── 6. SPIDEY ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#E85D04">S</div>
+            <div>
+              <div class="author-name">Spidey</div>
+              <div class="post-time">10:08 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="6.jpeg" alt="Spidey's letter">
+        <div class="post-title">What Is Spider-Man Without His SuperRati?</div>
+        <div class="post-snippet">I'm so proud of you — and I know you're probably rolling your eyes reading that, because you're already listing all the reasons why you shouldn't be…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Spidey" data-initials="S" data-color="#E85D04" data-img="6.jpeg"
+          data-title="What Is Spider-Man Without His SuperRati?"
+          data-time="10:08 AM" data-hasvideo="false"
+          data-body="My SuperRati||I'm so proud of you and I know you're probably rolling your eyes (or i should probably say your head 😔) reading that because you're probably already listing all the reasons why you shouldn't be proud of yourself. but that's exactly why I need you to hear it. We need you to hear it.||Even when you're the hardest on yourself, you have no idea what you're actually doing. Stupid 1s and 0s, binary code, assignments, deadlines, exams, tests, grades, stress, expectations and life in general have got you questioning where last year's Rati went, but she never disappeared. She was never gone. She's still here. She just needed a bit of motivation, a bit of rest, and a bit of grace from herself.||You're hard on yourself, and I get that. You care deeply about doing well. You set high standards for yourself because you know what you're capable of, but sometimes you're a bit too hard on yourself. Sometimes you speak to yourself in ways you'd never speak to the people you love and I wish you could see yourself the way the rest of us see you.||You fail to see what an amazing woman you are, what a great friend you are, what a wonderful sister you are, what a fantastic daughter you are.||You have this way of showing up for people even when you're struggling yourself. You somehow make people feel seen, heard and cared for. You make people laugh when they need it most. You offer comfort without even realizing it. You make spaces warmer just by being in them. I don't think you understand how many people are grateful for you. I don't think you realize how many lives you've touched just by being yourself. You’ve certainly brought the light to mine. You spend so much time worrying about whether you're enough that you forget you've always been more than enough.||The version of you that you feel is long gone, never disappeared. She's in your kindness. She’s in your “sunshine”. She's in your determination. She's in the way you refuse to give up, even when you think you're failing. She's in every late night where you keep trying. She's in every moment where you choose to keep going despite feeling exhausted.||Whether it's your late-night crashing out sessions, your overthinking, your moments of doubt, or you failing to see what a perfect woman is staring back at you when you're looking in the mirror, I'll always be here.||As I said, I'm not going anywhere. I'll always be your number one cheerleader.||I'll celebrate your wins when you forget to celebrate them yourself. I'll remind you of your worth when you forget it. I'll be there for the good days, the bad days, and the 'I have absolutely no idea what I'm doing' days.||Because after all, what is Spider-Man without his SuperRati?||We love you, we always will and always have and we are so proud of you. I am so proud of you.">
+          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+      <!-- ── 7. UYANDA ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#6A4C93">U</div>
+            <div>
+              <div class="author-name">Uyanda</div>
+              <div class="post-time">10:44 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="7.jpeg" alt="Uyanda's letter">
+        <div class="post-title">Everything You Touch Turns to Gold</div>
+        <div class="post-snippet">My mom's favourite, third child — girl, I love how you shine your light in every moment you can. It's like everything you touch turns to gold…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Uyanda" data-initials="U" data-color="#6A4C93" data-img="7.jpeg"
+          data-title="Everything You Touch Turns to Gold"
+          data-time="10:44 AM" data-hasvideo="false"
+          data-body="Letter to Pookies||My mom’s favourite, third child. Girl I love how you shine your light in every moment you can. it’s literally like every thing you touch turns into gold, with all its imperfections it still values its shine and destiny,whether it is curate into jewellery or something greater it always shine.||So whatever you’re going through know that you’re the gold that is destined to be something greater. Through the pressure and shaping of your destiny you will always shine.||And don’t forget to take it easy on yourself there is light at the end of the tunnel.">          
+          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+      <!-- ── 8. MUSA ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#2E86AB">M</div>
+            <div>
+              <div class="author-name">Musa</div>
+              <div class="post-time">11:20 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="8.jpeg" alt="Musa's letter">
+        <div class="post-title">You Made Being Spontaneous Look So Cool</div>
+        <div class="post-snippet">The biggest compliment I can give since the moment I met you in first year is this: you make being spontaneous look so cool…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Musa" data-initials="M" data-color="#2E86AB" data-img="8.jpeg"
+          data-title="You Made Being Spontaneous Look So Cool"
+          data-time="11:20 AM" data-hasvideo="false"
+          data-body="Madam Molefe||Dear Rati||When I think the biggest compliment I can give since the moment I met u on that day in 1st year is u make being spontaneous look so cool.||(What do I mean by that) in 1st year I obv wanted to be more expressive with myself and just enjoy my day to day, but I was unsure how to accomplish smt like that.||However, the second I met u and u broke out in dance at random points during our hangouts and made it seem so natural. That gave me such an amazing blueprint to work on, in terms of “Hey u want to just sing out loud or post photos of ur food, just look how fun it is for her”.||And from that I can only say my deepest gratitude for showing me that side was possible bc I have such unique people and personalities like u around me and without any issue over the day or what happened u never stopped finding time to be that person.||Yeah, so I know not everyday u are at that 💯 percent and it’s okay. Just know u are fine just the way you are and EVERY LITTLE THING IS GONNA BE ALRIGHT😝😝😝">
+                 Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+      <!-- ── 9. LIHLE ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#A4262C">Li</div>
+            <div>
+              <div class="author-name">Lihle</div>
+              <div class="post-time">11:55 AM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="9.jpeg" alt="Lihle's letter">
+        <div class="post-title">Coming Soon 🤍</div>
+        <div class="post-snippet">A letter from Lihle, written with love, is on its way to you…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Lihle" data-initials="Li" data-color="#A4262C" data-img="9.jpeg"
+          data-title="Coming Soon 🤍"
+          data-time="11:55 AM" data-hasvideo="false"
+          data-body="Something special from Lihle is on its way. Check back soon. 🤍">
+          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+      <!-- ── 10. MELANEY ── -->
+      <div class="post">
+        <div class="post-meta">
+          <div class="author">
+            <div class="av" style="background:#3D8B37">Me</div>
+            <div>
+              <div class="author-name">Melaney</div>
+              <div class="post-time">12:30 PM</div>
+            </div>
+          </div>
+          <button class="sub-btn" onclick="toggleSub(this)">Subscribe</button>
+        </div>
+        <img class="post-img" src="10.png" alt="Melaney's letter">
+        <div class="post-title">Versions of Yourself People Get to Experience</div>
+        <div class="post-snippet">There is the version that shows up to mentor meetings and somehow leaves people feeling lighter than when they arrived…</div>
+        <button class="read-more-btn" onclick="openArticle(this)"
+          data-name="Melaney" data-initials="Me" data-color="#3D8B37" data-img="10.png"
+          data-title="Versions of Yourself People Get to Experience"
+          data-time="12:30 PM" data-hasvideo="false"
+          data-body="I don't think you realise how many versions of yourself people get to experience.||There is the version that shows up to mentor meetings and somehow leaves people feeling lighter than when they arrived.||There is the version that sits in conversations and asks questions that make people feel seen.||There is the version that somehow remembers small details about people's lives and checks in on them later.||There is the version that makes space for people without even noticing she's doing it.||And then there is the version of you that I think is the hardest for you to see.||The one that keeps going.||The one that gets tired, overwhelmed, disappointed, frustrated and somehow still shows up the next day.||Not because she always wants to.||But because she does.||I think that's why this season stayed with me.||Because I got to watch someone continue moving forward while carrying more than most people realised.||You once filled my cup when I needed it.||You probably didn't know how much I needed it at the time.||Somehow, through your presence, your kindness, your laughter, and the way you move through the world, you reminded me that there was more to life than simply surviving it.||So in a small way, this is me returning the favour.||Not because I think you need reminding of how capable you are.||I think you're one of the most determined people I know. If you decide something matters, you chase it with everything you've got.||But because I think sometimes you forget how much of yourself you've already given to the people around you.||The joy.||The encouragement.||The conversations.||The care.||The parts of yourself that make people feel a little lighter after spending time with you.||And for what it's worth, a lot of us are better because you did.||Life feels big sometimes.||Bigger than our plans.||Bigger than our expectations.||Bigger than the version of ourselves we thought we'd be by now.||But every time life has asked something difficult of you, you've found a way to keep moving.||One step.||One conversation.||One day at a time.||And every time I think about that, I am reminded of Proverbs 3:5–6:||*Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to Him, and He will make your paths straight.*||Not because you've never felt weak.||But because faith was never about having all the answers.||It's about continuing to move forward even when you don't.||Thank you for being you.||You'll probably never know how much that has meant to me.||With love and gratitude,||Meme">          Continue reading
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="post-footer">
+          <button class="react" onclick="toggleLike(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></button>
+          <button class="react"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>0</span></button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="side-card">
+        <img src="logo.png" alt="Rati's Substack" style="height:40px;margin-bottom:12px;object-fit:contain;" onerror="this.style.display='none'">
+        <h3>Letters for Rati</h3>
+        <p class="tagline">You showed up for us during the semester — now it's time for us to do the same.</p>
+      </div>
+      <div class="side-card">
+        <h3 style="font-size:15px;margin-bottom:4px;">The writers</h3>
+        <p class="tagline" style="margin-bottom:0;">Everyone who showed up for her</p>
+        <div class="writers-row">
+          <div class="mini-av" style="background:#FF6719" title="Pabi">P</div>
+          <div class="mini-av" style="background:#1A6B4A" title="Amo">A</div>
+          <div class="mini-av" style="background:#5B4FCF" title="Tino">T</div>
+          <div class="mini-av" style="background:#D4478A" title="Panji">Pa</div>
+          <div class="mini-av" style="background:#0077B6" title="Lindelwa">L</div>
+          <div class="mini-av" style="background:#E85D04" title="Spidey">S</div>
+          <div class="mini-av" style="background:#6A4C93" title="Uyanda">U</div>
+          <div class="mini-av" style="background:#2E86AB" title="Musa">M</div>
+          <div class="mini-av" style="background:#A4262C" title="Lihle">Li</div>
+          <div class="mini-av" style="background:#3D8B37" title="Melaney">Me</div>
+        </div>
+        <p class="writers-label">10 letters written with love 🤍</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+
+<!-- ════════════ PAGE 2 — ARTICLE VIEW ════════════ -->
+<div id="article-page" class="page">
+  <nav>
+    <button onclick="goBack()" style="display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to all letters
+    </button>
+    <div class="nav-logo">
+      <img src="logo.png" alt="Rati's Substack" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="dot-fallback"></div>
+      <span>Rati's Substack</span>
+    </div>
+  </nav>
+
+  <div class="article-wrap">
+    <div class="article-eyebrow">
+      <div class="article-av" id="a-av"></div>
+      <div>
+        <div class="article-author" id="a-author"></div>
+        <div class="article-date" id="a-date"></div>
+      </div>
+    </div>
+    <img class="article-hero-img" id="a-img" src="" alt="">
+    <h1 class="article-title" id="a-title"></h1>
+    <hr class="article-divider">
+    <div class="article-body" id="a-body"></div>
+    <!-- video slot: shown only for Tino and Lindelwa -->
+    <div id="a-video-slot"></div>
+    <div class="article-footer">
+      <button class="article-like" onclick="toggleArticleLike(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Love this 🤍
+      </button>
+      <button class="article-back" onclick="goBack()">← All letters</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function openArticle(btn) {
+  const d = btn.dataset;
+
+  const av = document.getElementById('a-av');
+  av.textContent = d.initials;
+  av.style.background = d.color;
+
+  document.getElementById('a-author').textContent = d.name;
+  document.getElementById('a-date').textContent = 'Today at ' + d.time + ' · Written with love 🤍';
+
+  const img = document.getElementById('a-img');
+  img.src = d.img;
+  img.alt = d.name + "'s letter";
+
+  document.getElementById('a-title').textContent = d.title;
+
+  // Build body — paragraphs split by ||
+  document.getElementById('a-body').innerHTML =
+  d.body.replace(/\|\|/g, '<br><br>');
+
+  // Video slot
+  const slot = document.getElementById('a-video-slot');
+
+if (d.name === 'Tino') {
+  slot.innerHTML = `
+    <video class="article-video" controls>
+      <source src="3.mp4" type="video/mp4">
+    </video>
+  `;
+}
+else if (d.name === 'Lindelwa') {
+  slot.innerHTML = `
+    <video class="article-video" controls>
+      <source src="5.mp4" type="video/mp4">
+    </video>
+  `;
+}
+else {
+  slot.innerHTML = '';
+}
+
+  // reset like
+  document.querySelector('.article-like').classList.remove('on');
+
+  document.getElementById('feed-page').classList.remove('active');
+  document.getElementById('article-page').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  document.getElementById('article-page').classList.remove('active');
+  document.getElementById('feed-page').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function toggleLike(btn) {
+  btn.classList.toggle('on');
+  const span = btn.querySelector('span');
+  span.textContent = btn.classList.contains('on')
+    ? parseInt(span.textContent) + 1
+    : Math.max(0, parseInt(span.textContent) - 1);
+}
+
+function toggleArticleLike(btn) {
+  btn.classList.toggle('on');
+  showToast(btn.classList.contains('on') ? '❤️ Liked!' : 'Like removed');
+}
+
+function toggleSub(btn) {
+  btn.classList.toggle('subbed');
+  btn.textContent = btn.classList.contains('subbed') ? 'Subscribed ✓' : 'Subscribe';
+  if (btn.classList.contains('subbed')) showToast('Subscribed! 🎉');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
